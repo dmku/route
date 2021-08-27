@@ -36,21 +36,20 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>io.springfox</groupId>
 			<artifactId>springfox-swagger2</artifactId>
-			<version>3.0.0</version>
+			<version>2.9.2</version>
 		</dependency>
 		<dependency>
 			<groupId>io.springfox</groupId>
 			<artifactId>springfox-swagger-ui</artifactId>
-			<version>3.0.0</version>
+			<version>2.9.2</version>
 		</dependency>
 		<dependency>
 			<groupId>io.springfox</groupId>
 			<artifactId>springfox-bean-validators</artifactId>
-			<version>3.0.0</version>
+			<version>2.9.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openapitools</groupId>
@@ -77,6 +76,36 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>5.2.0</version>
+				<executions>
+					<execution>
+						<id>RouteApi</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<generatorName>spring</generatorName>
+							<inputSpec>${project.basedir}/src/main/resources/openapi/route-service.yaml</inputSpec>
+							<apiPackage>org.kutnyuk.route.controller</apiPackage>
+							<modelPackage>org.kutnyuk.route.dto</modelPackage>
+							<modelNameSuffix>Dto</modelNameSuffix>
+							<skipOverwrite>false</skipOverwrite>
+							<!--generateModelDocumentation>false</generateModelDocumentation-->
+							<generateModelTests>false</generateModelTests>
+							<configOptions>
+								<java8>true</java8>
+								<interfaceOnly>true</interfaceOnly>
+								<useTags>true</useTags>
+								<skipDefaultInterface>true</skipDefaultInterface>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

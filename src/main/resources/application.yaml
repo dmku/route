@@ -1,1 +1,6 @@
+server:
+  address: 0.0.0.0
+  port: 8080
 
+application:
+  countriesUrl: https://raw.githubusercontent.com/mledoze/countries/master/countries.json
