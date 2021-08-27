@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,20 +27,23 @@ public class RouteServiceImpl implements RouteService {
         init();
     }
 
-    @Override
-    public List<String> evaluateRoute(String origin, String destination) {
-
-
-        return countries.stream()
-                .map(country -> country.getCca3()).collect(Collectors.toList());
-    }
-
     private void init(){
         try {
-            countries = objectMapper
-                    .readValue(new URL(countriesUrl), new TypeReference<List<Country>>(){});
+            countries = objectMapper.readValue(new URL(countriesUrl), new TypeReference<>() {});
         } catch (Exception e) {
             throw new IllegalStateException("Can not parse source json", e);
         }
     }
+
+    @Override
+    public List<String> evaluateRoute(String origin, String destination) {
+
+        Map<String, Country> graph = new HashMap<>();
+        graph.putAll(countries.stream()
+                .collect(Collectors.toMap(Country::getName, Function.identity())));
+
+
+        return null;
+    }
+
 }
