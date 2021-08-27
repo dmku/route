@@ -8,9 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,8 +40,44 @@ public class RouteServiceImpl implements RouteService {
         graph.putAll(countries.stream()
                 .collect(Collectors.toMap(Country::getName, Function.identity())));
 
+        LinkedList<Country> queue = new LinkedList<>();
+        Country startCountry = graph.get(origin);
+        startCountry.setProcessed(true);
+        queue.offer(startCountry);
 
-        return null;
+        while (!queue.isEmpty()){
+            Country currentCountry = queue.poll();
+             if(destination.equals(currentCountry.getName()))
+             {
+                 return reverseRoute(currentCountry);
+             }
+
+            List<Country> neighbours = currentCountry.getBorders()
+                    .stream()
+                    .map(countryName -> graph.get(countryName))
+                    .collect(Collectors.toList());
+
+             neighbours.forEach(neighbour -> {
+                 neighbour.setProcessed(true);
+                 neighbour.setPrevious(currentCountry);
+                 queue.add(neighbour);
+             });
+        }
+
+        return new ArrayList<>();
+    }
+
+    private List<String> reverseRoute(Country currentCountry) {
+        Country previous = currentCountry.getPrevious();
+        List<String> route = new ArrayList<>();
+        route.add(currentCountry.getName());
+
+        while (previous != null){
+            route.add(previous.getName());
+            previous = previous.getPrevious();
+        }
+
+        return route;
     }
 
 }

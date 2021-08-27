@@ -23,4 +23,7 @@ public class Country {
 
     @JsonIgnore
     private boolean processed;
+
+    @JsonIgnore
+    private Country previous;
 }
