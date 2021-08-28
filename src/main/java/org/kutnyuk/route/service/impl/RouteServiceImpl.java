@@ -2,6 +2,8 @@ package org.kutnyuk.route.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SerializationUtils;
 import org.kutnyuk.route.data.Country;
 import org.kutnyuk.route.service.RouteService;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,11 +15,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class RouteServiceImpl implements RouteService {
 
     private String countriesUrl;
-    private List<Country> countries;
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
+    private Map<String, Country> graph = new HashMap<>();
 
     public RouteServiceImpl(ObjectMapper objectMapper, @Value("${application.countriesUrl}") String countriesUrl) {
         this.objectMapper = objectMapper;
@@ -27,7 +30,14 @@ public class RouteServiceImpl implements RouteService {
 
     private void init(){
         try {
-            countries = objectMapper.readValue(new URL(countriesUrl), new TypeReference<>() {});
+            List<Country> countries = objectMapper.readValue(new URL(countriesUrl), new TypeReference<>() {});
+
+            graph.putAll(countries.stream()
+                    .collect(Collectors.toMap(Country::getName, Function.identity())));
+
+
+
+
         } catch (Exception e) {
             throw new IllegalStateException("Can not parse source json", e);
         }
@@ -36,32 +46,52 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public List<String> evaluateRoute(String origin, String destination) {
 
-        Map<String, Country> graph = new HashMap<>();
-        graph.putAll(countries.stream()
-                .collect(Collectors.toMap(Country::getName, Function.identity())));
+        log.info("destination=" + destination);
+        log.info("origin=" + origin);
+
+        Map<String, Country> clonedGraph = SerializationUtils.clone((HashMap<String, Country>) graph);
 
         LinkedList<Country> queue = new LinkedList<>();
-        Country startCountry = graph.get(origin);
+        Country startCountry = clonedGraph.get(origin);
+        log.info("startCountry=" + startCountry);
+
         startCountry.setProcessed(true);
-        queue.offer(startCountry);
+        queue.add(startCountry);
+
+
+
+
 
         while (!queue.isEmpty()){
+            log.info("<<<<<<<<<<<<<<<<< ITERATION >>>>>>>>>>>>>>>");
             Country currentCountry = queue.poll();
-             if(destination.equals(currentCountry.getName()))
+            log.info("currentCountry=" + currentCountry);
+
+            if(destination.equals(currentCountry.getName()))
              {
                  return reverseRoute(currentCountry);
              }
 
             List<Country> neighbours = currentCountry.getBorders()
                     .stream()
-                    .map(countryName -> graph.get(countryName))
+                    .map(countryName -> clonedGraph.get(countryName))
                     .collect(Collectors.toList());
 
+
+
              neighbours.forEach(neighbour -> {
-                 neighbour.setProcessed(true);
-                 neighbour.setPrevious(currentCountry);
-                 queue.add(neighbour);
+                 log.info("neighbour=" + neighbour);
+                 if(!neighbour.isProcessed()){
+                     neighbour.setProcessed(true);
+                     neighbour.setPrevious(currentCountry);
+                     queue.add(neighbour);
+
+                 }
              });
+
+            log.info("QUEUE:");
+            queue.forEach(q -> log.info(q.toString()));
+
         }
 
         return new ArrayList<>();
@@ -69,13 +99,17 @@ public class RouteServiceImpl implements RouteService {
 
     private List<String> reverseRoute(Country currentCountry) {
         Country previous = currentCountry.getPrevious();
-        List<String> route = new ArrayList<>();
+        List<String> route = new LinkedList<>();
+
         route.add(currentCountry.getName());
+
 
         while (previous != null){
             route.add(previous.getName());
             previous = previous.getPrevious();
         }
+
+        Collections.reverse(route);
 
         return route;
     }
