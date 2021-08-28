@@ -42,8 +42,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Route'
 
-        '400':
+        '404':
           description: Route not found
+
+        '400':
+          description: Bad request
 
 
 

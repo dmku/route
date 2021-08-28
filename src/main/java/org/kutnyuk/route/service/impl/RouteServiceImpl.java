@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.SerializationUtils;
 import org.kutnyuk.route.data.Country;
+import org.kutnyuk.route.eh.CountryNotFoudException;
+import org.kutnyuk.route.eh.RouteNotFoundException;
 import org.kutnyuk.route.service.RouteService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -46,24 +48,26 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public List<String> evaluateRoute(String origin, String destination) {
 
-        log.info("destination=" + destination);
-        log.info("origin=" + origin);
+        log.info("origin=?, destination=?", destination, origin);
+
 
         Map<String, Country> clonedGraph = SerializationUtils.clone((HashMap<String, Country>) graph);
-
         LinkedList<Country> queue = new LinkedList<>();
-        Country startCountry = clonedGraph.get(origin);
+        int counter = 1;
+
+        Country startCountry = findCountry(clonedGraph, origin);
         log.info("startCountry=" + startCountry);
+
+        Country destinationCountry = findCountry(clonedGraph, destination);
+        log.info("destinationCountry=" + destinationCountry);
 
         startCountry.setProcessed(true);
         queue.add(startCountry);
 
 
-
-
-
         while (!queue.isEmpty()){
-            log.info("<<<<<<<<<<<<<<<<< ITERATION >>>>>>>>>>>>>>>");
+            log.info("Iteration #" + counter);
+
             Country currentCountry = queue.poll();
             log.info("currentCountry=" + currentCountry);
 
@@ -74,9 +78,8 @@ public class RouteServiceImpl implements RouteService {
 
             List<Country> neighbours = currentCountry.getBorders()
                     .stream()
-                    .map(countryName -> clonedGraph.get(countryName))
+                    .map(countryName -> findCountry(clonedGraph, countryName))
                     .collect(Collectors.toList());
-
 
 
              neighbours.forEach(neighbour -> {
@@ -85,16 +88,22 @@ public class RouteServiceImpl implements RouteService {
                      neighbour.setProcessed(true);
                      neighbour.setPrevious(currentCountry);
                      queue.add(neighbour);
-
                  }
              });
 
             log.info("QUEUE:");
             queue.forEach(q -> log.info(q.toString()));
 
+            counter++;
         }
 
-        return new ArrayList<>();
+        throw new RouteNotFoundException("Route was not found");
+    }
+
+    private Country findCountry(Map<String, Country> clonedGraph, String key) {
+
+        return Optional.ofNullable(clonedGraph.get(key))
+                  .orElseThrow( () -> new CountryNotFoudException("Country was not found by key=" + key));
     }
 
     private List<String> reverseRoute(Country currentCountry) {
